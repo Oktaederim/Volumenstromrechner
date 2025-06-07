@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Volumenstrom-Rechner</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f7f9;
+            color: #333;
+        }
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #005a9e;
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        .control-group {
+            margin-bottom: 20px;
+            /* Wichtig für den Grid-Umbruch */
+            min-width: 200px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+        }
+        .value-display {
+            font-weight: bold;
+            color: #005a9e;
+            margin-left: 10px;
+        }
+        .shape-toggle {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 25px;
+        }
+        .shape-toggle label {
+            padding: 8px 15px;
+            border: 1px solid #ccc;
+            cursor: pointer;
+        }
+        .shape-toggle input[type="radio"] {
+            display: none;
+        }
+        .shape-toggle input[type="radio"]:checked + label {
+            background-color: #005a9e;
+            color: white;
+            border-color: #005a9e;
+        }
+        
+        /* NEUES GRID-LAYOUT FÜR DIE REGLER */
+        .controls-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr; /* Zwei Spalten mit gleicher Breite */
+            gap: 15px 30px; /* Abstand zwischen Zeilen und Spalten */
+        }
+
+        /* Auf kleinen Bildschirmen (Handys) wird das Grid einspaltig */
+        @media (max-width: 600px) {
+            .controls-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .result {
+            text-align: center;
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #e6f0f7;
+            border-radius: 8px;
+        }
+        .result h2 {
+            margin: 0;
+            font-size: 2.5em;
+            color: #005a9e;
+        }
+        .result p {
+            margin: 5px 0 0;
+            color: #555;
+        }
+        button {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            background-color: #d9534f;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 1em;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        button:hover {
+            background-color: #c9302c;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Volumenstrom-Rechner 💨</h1>
+
+    <div class="shape-toggle">
+        <input type="radio" id="shape-rechteck" name="shape" value="rechteck" checked>
+        <label for="shape-rechteck">Rechteckig</label>
+        <input type="radio" id="shape-rund" name="shape" value="rund">
+        <label for="shape-rund">Rund</label>
+    </div>
+
+    <div class="controls-grid">
+        <div class="control-group rect-input">
+            <label for="laenge">Länge: <span id="laenge-val" class="value-display">120 cm</span></label>
+            <input type="range" id="laenge" min="10" max="300" value="120">
+        </div>
+        <div class="control-group rect-input">
+            <label for="breite">Breite: <span id="breite-val" class="value-display">10 cm</span></label>
+            <input type="range" id="breite" min="1" max="50" value="10">
+        </div>
+        <div class="control-group round-input" style="display:none;">
+            <label for="durchmesser">Durchmesser: <span id="durchmesser-val" class="value-display">10.0 cm</span></label>
+            <input type="range" id="durchmesser" min="5" max="100" value="10" step="0.5">
+        </div>
+
+        <div class="control-group">
+            <label for="geschwindigkeit">Luftgeschwindigkeit: <span id="geschwindigkeit-val" class="value-display">1.1 m/s</span></label>
+            <input type="range" id="geschwindigkeit" min="0.1" max="2.0" step="0.05" value="1.1">
+        </div>
+        <div class="control-group">
+            <label for="korrekturfaktor">Korrekturfaktor: <span id="korrekturfaktor-val" class="value-display">1.00</span></label>
+            <input type="range" id="korrekturfaktor" min="0.5" max="1.5" step="0.01" value="1.0">
+        </div>
+    </div>
+
+
+    <div class="result">
+        <p>Berechneter Volumenstrom:</p>
+        <h2 id="ergebnis">475.2 m³/h</h2>
+    </div>
+
+    <button id="reset-btn">Standardwerte wiederherstellen</button>
+</div>
+
+<script>
+    const defaults = {
+        laenge: 120,
+        breite: 10,
+        durchmesser: 10,
+        geschwindigkeit: 1.1,
+        korrekturfaktor: 1.0,
+    };
+
+    const laengeSlider = document.getElementById('laenge');
+    const breiteSlider = document.getElementById('breite');
+    const durchmesserSlider = document.getElementById('durchmesser');
+    const geschwindigkeitSlider = document.getElementById('geschwindigkeit');
+    const korrekturfaktorSlider = document.getElementById('korrekturfaktor');
+
+    const laengeVal = document.getElementById('laenge-val');
+    const breiteVal = document.getElementById('breite-val');
+    const durchmesserVal = document.getElementById('durchmesser-val');
+    const geschwindigkeitVal = document.getElementById('geschwindigkeit-val');
+    const korrekturfaktorVal = document.getElementById('korrekturfaktor-val');
+
+    const ergebnisAnzeige = document.getElementById('ergebnis');
+    const shapeRadios = document.querySelectorAll('input[name="shape"]');
+    const resetBtn = document.getElementById('reset-btn');
+    
+    // NEU: Selektoren für die zu toggelnden Gruppen
+    const rectInputs = document.querySelectorAll('.rect-input');
+    const roundInput = document.querySelector('.round-input');
+
+    function berechnen() {
+        const v = parseFloat(geschwindigkeitSlider.value);
+        const k = parseFloat(korrekturfaktorSlider.value);
+        const currentShape = document.querySelector('input[name="shape"]:checked').value;
+        let flaeche_m2 = 0;
+
+        if (currentShape === 'rechteck') {
+            const l_cm = parseFloat(laengeSlider.value);
+            const b_cm = parseFloat(breiteSlider.value);
+            flaeche_m2 = (l_cm / 100) * (b_cm / 100);
+        } else {
+            const d_cm = parseFloat(durchmesserSlider.value);
+            const radius_m = (d_cm / 100) / 2;
+            flaeche_m2 = Math.PI * Math.pow(radius_m, 2);
+        }
+
+        const volumenstrom_m3s = flaeche_m2 * v * k;
+        const volumenstrom_m3h = volumenstrom_m3s * 3600;
+
+        ergebnisAnzeige.textContent = volumenstrom_m3h.toFixed(1) + ' m³/h';
+
+        laengeVal.textContent = laengeSlider.value + ' cm';
+        breiteVal.textContent = breiteSlider.value + ' cm';
+        // NEU: Anzeige für Durchmesser auf eine Nachkommastelle formatiert
+        durchmesserVal.textContent = parseFloat(durchmesserSlider.value).toFixed(1) + ' cm';
+        geschwindigkeitVal.textContent = parseFloat(geschwindigkeitSlider.value).toFixed(2) + ' m/s';
+        korrekturfaktorVal.textContent = parseFloat(korrekturfaktorSlider.value).toFixed(2);
+    }
+
+    // NEU: Angepasste Funktion zum Umschalten der Ansicht
+    function toggleShapeView() {
+        const currentShape = document.querySelector('input[name="shape"]:checked').value;
+        if (currentShape === 'rechteck') {
+            rectInputs.forEach(el => el.style.display = 'block');
+            roundInput.style.display = 'none';
+        } else {
+            rectInputs.forEach(el => el.style.display = 'none');
+            roundInput.style.display = 'block';
+        }
+        berechnen();
+    }
+    
+    function resetValues() {
+        laengeSlider.value = defaults.laenge;
+        breiteSlider.value = defaults.breite;
+        durchmesserSlider.value = defaults.durchmesser;
+        geschwindigkeitSlider.value = defaults.geschwindigkeit;
+        korrekturfaktorSlider.value = defaults.korrekturfaktor;
+        
+        document.getElementById('shape-rechteck').checked = true;
+        
+        toggleShapeView();
+    }
+
+    const sliders = [laengeSlider, breiteSlider, durchmesserSlider, geschwindigkeitSlider, korrekturfaktorSlider];
+    sliders.forEach(slider => slider.addEventListener('input', berechnen));
+    shapeRadios.forEach(radio => radio.addEventListener('change', toggleShapeView));
+    resetBtn.addEventListener('click', resetValues);
+
+    resetValues();
+</script>
+
+</body>
+</html>
